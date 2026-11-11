@@ -400,8 +400,14 @@
        (spec reads this off html, Chrome historically off body — set both) */
     overscroll-behavior: none;
   }
-  #root {
-    padding-top: var(--safe-top);
+  /* Below the top safe area, each column of a page starts its content while
+     its own background runs up under the menu or status bar, as a native app
+     does. A transparent border rather than padding, so every column keeps the
+     padding it already has. Fixed screens (the canvas) use --app-inset. */
+  [data-slot=dash-sidebar],
+  [data-slot=dash-main],
+  [data-slot=auth-screen] {
+    border-top: var(--safe-top) solid transparent;
   }
   body {
     @apply bg-background font-sans text-foreground;
@@ -411,6 +417,10 @@
   html {
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
+    /* no page-level pinch or double-tap zoom: it would slide the fixed
+       chrome under the status bar (see lib/pageZoomGuard.ts); the canvas
+       zooms itself, and scrolling panes still pan */
+    touch-action: pan-x pan-y;
   }
   ::selection {
     background: color-mix(in srgb, var(--brand) 18%, transparent);
