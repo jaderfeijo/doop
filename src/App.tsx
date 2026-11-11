@@ -234,14 +234,16 @@ export function App() {
       {/* --app-inset is the contract with fixed-position screens: the canvas
           workspace is `fixed inset-0` and ignores this padding, so it offsets
           itself by the same variable instead of hardcoding the banner height */}
-      <div className="h-dvh overflow-auto pt-14 [--app-inset:56px] sm:pt-10 sm:[--app-inset:40px]">{page}</div>
+      <div className="h-full overflow-auto pt-14 [--app-inset:calc(56px_+_var(--safe-top))] sm:pt-10 sm:[--app-inset:calc(40px_+_var(--safe-top))]">
+        {page}
+      </div>
     </>
   ) : isDesktopShell() ? (
     /* the desktop shell's tab strip uses the same --app-inset contract as
        the banner: fixed screens (the canvas workspace) offset themselves */
     <>
       <DesktopTabs path={path} />
-      <div className="h-dvh overflow-auto pt-10 [--app-inset:40px]">{page}</div>
+      <div className="h-full overflow-auto pt-10 [--app-inset:calc(40px_+_var(--safe-top))]">{page}</div>
     </>
   ) : (
     page
@@ -252,7 +254,7 @@ function ImpersonationBanner({ name }: { name: string }) {
   const t = useT()
   const [leaving, setLeaving] = useState(false)
   return (
-    <div className="fixed inset-x-0 top-0 z-[900] flex min-h-14 items-center justify-between gap-2 border-b border-accent-ink px-2.5 py-[7px] text-[11.5px] leading-tight text-accent-ink backdrop-blur-[6px] [background:repeating-linear-gradient(-45deg,rgba(208,52,31,0.16)_0_10px,rgba(208,52,31,0.08)_10px_20px)] sm:h-10 sm:min-h-0 sm:justify-center sm:gap-4 sm:text-[13px]">
+    <div className="fixed inset-x-0 top-[var(--safe-top)] z-[900] flex min-h-14 items-center justify-between gap-2 border-b border-accent-ink px-2.5 py-[7px] text-[11.5px] leading-tight text-accent-ink backdrop-blur-[6px] [background:repeating-linear-gradient(-45deg,rgba(208,52,31,0.16)_0_10px,rgba(208,52,31,0.08)_10px_20px)] sm:h-10 sm:min-h-0 sm:justify-center sm:gap-4 sm:text-[13px]">
       <span>
         {t('auth.viewingAsBefore')} <strong>{name}</strong> {t('auth.viewingAsAfter')}
       </span>

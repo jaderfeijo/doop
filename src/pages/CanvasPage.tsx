@@ -814,8 +814,9 @@ export function CanvasPage({
   }
 
   return (
-    /* --app-inset is 0 normally; the impersonation shell raises it so this
-       fixed layer starts below the banner instead of under it */
+    /* --app-inset is the top safe area normally (0 in a browser tab); the
+       impersonation shell raises it so this fixed layer starts below the
+       banner instead of under it */
     <div className="fixed inset-x-0 bottom-0 top-[var(--app-inset,0px)] bg-canvas">
       {/* Floating pills over the canvas, which shows through the transparent
           bar: the title pill on the left, live presence centred, sharing on

@@ -151,6 +151,13 @@
 
 :root {
   color-scheme: light;
+  /* The top safe area: under the iPadOS menu bar or status bar when Doop runs
+     as a home-screen web app (viewport-fit=cover), plus up to 8px so the chrome
+     does not crowd it. Both terms are 0 in a normal browser tab. */
+  --safe-top: calc(env(safe-area-inset-top, 0px) + min(env(safe-area-inset-top, 0px), 8px));
+  /* fixed-position screens offset themselves by this (see App.tsx); shells
+     that add a strip of their own raise it */
+  --app-inset: var(--safe-top);
   /* Pure white system (Doop UI v2): the canvas is a hair off white, panels
      are white, and neutral greys carry every other layer — no warm cream.
      --paper is the canvas, --surface a floating panel, --paper-deep the
@@ -392,6 +399,9 @@
     /* trackpad swipes must never turn into browser back/forward navigation
        (spec reads this off html, Chrome historically off body — set both) */
     overscroll-behavior: none;
+  }
+  #root {
+    padding-top: var(--safe-top);
   }
   body {
     @apply bg-background font-sans text-foreground;
