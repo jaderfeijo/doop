@@ -12,6 +12,12 @@ export const settings = {
   homeDashboardDescription: 'Choose what appears on your home dashboard in this browser.',
   showPromptBox: 'Show Prompt Box',
   showPromptBoxHint: 'Start a design from a prompt on the home dashboard.',
+  /* the desktop app's Server card; the modal's own strings are auth.server* */
+  serverTitle: 'Server',
+  serverDescription: 'The Doop server this app opens. Switching restarts the app, and you sign in on the new server.',
+  serverRow: 'Connected to',
+  serverDefault: 'Default',
+  serverChange: 'Change…',
   agentTitle: 'Doop Agent',
   agentBlurb: 'Your connections, and the one the agent runs on when nobody picks: comments, @mentions and automations.',
   fontsTitle: 'Fonts',

@@ -17,6 +17,12 @@
 //! on this computer, read fonts the person picks and write their Codex and
 //! Claude settings.
 //!
+//! With no `server.json` at all (a first launch), the window opens on a
+//! page bundled in the shell (first_run.html, see `first_run`) that asks
+//! whether to use doop.design or a self-hosted server, so the choice never
+//! depends on what the default server's pages offer. Either answer is saved,
+//! doop.design included, so the question is asked once.
+//!
 //! A server that never loads leaves no page to change it from. So at launch
 //! the shell checks a chosen server answers and, when it does not, asks in a
 //! native dialog whether to try again or go back to doop.design (every
@@ -84,24 +90,21 @@ fn chosen(app: &AppHandle) -> Option<String> {
     normalize(value.get("url")?.as_str()?).ok()
 }
 
+/// Saves the server to open; None saves the default. Either way the file
+/// exists afterwards, which is what keeps the first-run page from coming back.
 fn save(app: &AppHandle, url: Option<&str>) -> Result<(), String> {
     let file = config_file(app).ok_or("Could not find the app's data folder.")?;
-    match url {
-        None => match std::fs::remove_file(&file) {
-            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
-                Err("Could not reset the server setting.".into())
-            }
-            _ => Ok(()),
-        },
-        Some(url) => {
-            if let Some(dir) = file.parent() {
-                std::fs::create_dir_all(dir)
-                    .map_err(|_| "Could not create the app's data folder.")?;
-            }
-            std::fs::write(&file, json!({ "url": url }).to_string())
-                .map_err(|_| "Could not save the server setting.".into())
-        }
+    let url = url.map_or_else(default_url, str::to_string);
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir).map_err(|_| "Could not create the app's data folder.")?;
     }
+    std::fs::write(&file, json!({ "url": url }).to_string())
+        .map_err(|_| "Could not save the server setting.".into())
+}
+
+/// No server has been chosen on this computer yet, not even doop.design.
+pub fn needs_first_run(app: &AppHandle) -> bool {
+    config_file(app).is_some_and(|file| !file.exists())
 }
 
 /// A typed address as the origin it names: `doop.example.com`,
@@ -339,6 +342,140 @@ pub fn check_on_launch(app: &AppHandle, entry: Url) {
             }
         }
     });
+}
+
+/// The first launch's question (first_run.html): doop.design or a
+/// self-hosted server. The page is a data: URL with no IPC; it asks by
+/// navigating to `ACTION_HOST`, which `intercept` catches before the
+/// navigation allowlist sees it, and is answered through
+/// `window.doopFirstRun`.
+pub mod first_run {
+    use super::*;
+
+    const PAGE: &str = include_str!("first_run.html");
+    /// A reserved name (RFC 2606) that never resolves, should it ever leak.
+    const ACTION_HOST: &str = "first-run.doop.invalid";
+
+    pub fn page_url() -> Url {
+        Url::parse(&format!(
+            "data:text/html;charset=utf-8,{}",
+            percent_encode(PAGE)
+        ))
+        .expect("the bundled first-run page is a valid data: URL")
+    }
+
+    #[derive(Debug, PartialEq)]
+    enum Request {
+        Default,
+        Server(String),
+    }
+
+    fn request(url: &Url) -> Option<Request> {
+        if url.host_str() != Some(ACTION_HOST) {
+            return None;
+        }
+        if url.query_pairs().any(|(key, _)| key == "default") {
+            return Some(Request::Default);
+        }
+        let typed = url
+            .query_pairs()
+            .find(|(key, _)| key == "url")
+            .map(|(_, value)| value.into_owned())
+            .unwrap_or_default();
+        Some(Request::Server(typed))
+    }
+
+    /// True when `url` is the page's request, which must not load.
+    pub fn intercept(app: &AppHandle, url: &Url) -> bool {
+        let Some(request) = request(url) else {
+            return false;
+        };
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let outcome = match request {
+                Request::Default => open_default(&app),
+                Request::Server(typed) => choose(&app, &typed).await,
+            };
+            let script = match outcome {
+                Ok(true) => return,
+                Ok(false) => "window.doopFirstRun?.cancelled()".to_string(),
+                Err(error) => format!(
+                    "window.doopFirstRun?.failed({})",
+                    serde_json::to_string(&error).unwrap_or_default()
+                ),
+            };
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.eval(script);
+            }
+        });
+        true
+    }
+
+    /// The default is already this launch's server (nothing was chosen), with
+    /// its grant and allowlist, so it opens without a restart.
+    fn open_default(app: &AppHandle) -> Result<bool, String> {
+        save(app, None)?;
+        let entry = Url::parse(&format!("{}/auth", default_url())).map_err(|e| e.to_string())?;
+        if let Some(window) = app.get_webview_window("main") {
+            window.navigate(entry).map_err(|e| e.to_string())?;
+        }
+        Ok(true)
+    }
+
+    /// Checks the server answers, then `switch`'s confirm, save and restart.
+    async fn choose(app: &AppHandle, typed: &str) -> Result<bool, String> {
+        let server = probe(&normalize(typed)?).await?;
+        if same_server(&server, &default_url()) {
+            return open_default(app);
+        }
+        switch(app, server).await
+    }
+
+    /// Everything but RFC 3986's unreserved characters, as %XX.
+    fn percent_encode(text: &str) -> String {
+        let mut out = String::with_capacity(text.len() * 2);
+        for byte in text.bytes() {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+                out.push(byte as char);
+            } else {
+                out.push_str(&format!("%{byte:02X}"));
+            }
+        }
+        out
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn reads_the_pages_requests() {
+            let url = |s: &str| Url::parse(s).unwrap();
+            assert_eq!(
+                request(&url("https://first-run.doop.invalid/?default")),
+                Some(Request::Default)
+            );
+            assert_eq!(
+                request(&url(
+                    "https://first-run.doop.invalid/?url=doop.example.com%2Fc%2Fx"
+                )),
+                Some(Request::Server("doop.example.com/c/x".into()))
+            );
+            assert_eq!(
+                request(&url("https://first-run.doop.invalid/")),
+                Some(Request::Server(String::new()))
+            );
+            assert_eq!(request(&url("https://doop.design/?default")), None);
+        }
+
+        #[test]
+        fn the_page_survives_its_data_url() {
+            let url = page_url();
+            assert_eq!(url.scheme(), "data");
+            assert!(url.as_str().contains("first-run.doop.invalid"));
+            assert_eq!(percent_encode("a b/é"), "a%20b%2F%C3%A9");
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]

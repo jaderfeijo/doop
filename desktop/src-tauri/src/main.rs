@@ -397,7 +397,11 @@ fn main() {
             let migrating = webkit_migration::pending();
             #[cfg(not(all(chromium, target_os = "macos")))]
             let migrating = false;
-            let first_url: Url = if migrating {
+            // No server chosen yet: the bundled page asks which (server.rs).
+            let first_run = !migrating && server::needs_first_run(app.handle());
+            let first_url: Url = if first_run {
+                server::first_run::page_url()
+            } else if migrating {
                 #[cfg(all(chromium, target_os = "macos"))]
                 {
                     let origin = Url::parse(&base_url())?;
@@ -510,6 +514,9 @@ fn main() {
                     .inner_size(1440.0, 900.0)
                     .min_inner_size(900.0, 600.0)
                     .on_navigation(move |url| {
+                        if server::first_run::intercept(&handle, url) {
+                            return false;
+                        }
                         let in_app = match (url.scheme(), url.host_str()) {
                             ("mailto" | "tel", _) => false,
                             (_, Some(host)) => app_hosts.iter().any(|h| h == host),

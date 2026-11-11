@@ -53,8 +53,13 @@ enum Trigger {
 /// with one would silently change its server, and a debug build would be
 /// replaced by a release. On macOS the feed names the Chromium build, so the
 /// WebKit app updates into it and the Chromium app keeps updating from it.
+/// Off in this local build (the first-run server picker): it must not be
+/// replaced by an official release from the doop.design feed.
+const LOCAL_BUILD: bool = true;
+
 fn updates_enabled() -> bool {
-    !cfg!(debug_assertions)
+    !LOCAL_BUILD
+        && !cfg!(debug_assertions)
         && matches!(
             crate::APP_URL.trim_end_matches('/'),
             "https://doop.design" | "https://www.doop.design"
