@@ -8,9 +8,11 @@ import { UpdateCard } from './components/UpdateCard'
 import { initTheme } from './lib/theme'
 import { initLocale } from './lib/i18n'
 import { installTranslateGuard } from './lib/translateGuard'
+import { installPageZoomGuard } from './lib/pageZoomGuard'
 import './styles.css'
 
 installTranslateGuard()
+installPageZoomGuard()
 initDesktopShell()
 initTheme()
 
