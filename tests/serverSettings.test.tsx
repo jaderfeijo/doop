@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { ServerSettings } from '../src/components/ServerSettings'
+import { ServerCard } from '../src/components/ServerCard'
 import { canChooseServer, chooseServer, serverErrorMessage, serverHost } from '../src/lib/desktopServer'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -112,5 +113,34 @@ describe('the sign-in screen’s server settings', () => {
     expect(invoke).toHaveBeenCalledWith('server_choose', { url: 'https://doop.design' })
     /* a cancelled dialog leaves the form as it was */
     expect(button('Connect')?.disabled).toBe(false)
+  })
+})
+
+describe('the Settings page’s Server card', () => {
+  it('draws nothing in a browser', async () => {
+    await act(async () => root.render(<ServerCard />))
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('names the default server and marks it as the default', async () => {
+    shell({ url: 'https://doop.design', defaultUrl: 'https://doop.design', custom: false }, () => true)
+    await act(async () => root.render(<ServerCard />))
+    expect(container.textContent).toContain('doop.design')
+    expect(container.textContent).toContain('Default')
+  })
+
+  it('opens the same modal on a self-hosted server, with the way back', async () => {
+    const invoke = shell(
+      { url: 'https://doop.example.com', defaultUrl: 'https://doop.design', custom: true },
+      () => true,
+    )
+    await act(async () => root.render(<ServerCard />))
+    expect(container.textContent).toContain('doop.example.com')
+    expect(container.textContent).not.toContain('Default')
+    await act(async () => button('Change…')!.click())
+    const input = document.querySelector<HTMLInputElement>('input[aria-label="Server address"]')!
+    expect(input.value).toBe('https://doop.example.com')
+    await act(async () => button('Use doop.design')!.click())
+    expect(invoke).toHaveBeenCalledWith('server_choose', { url: 'https://doop.design' })
   })
 })

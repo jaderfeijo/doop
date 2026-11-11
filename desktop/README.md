@@ -8,7 +8,8 @@ needs a new release when the shell itself changes (icon, menu, Tauri bump).
 The released installers (macOS DMG, Windows NSIS setup, and the Linux AppImage,
 .deb and .rpm) talk to the hosted
 service at doop.design. Self-hosting your own doop instance? The cog on the
-sign-in screen points the same app at it: the shell checks that the address
+sign-in screen (or Settings → General → Server once signed in,
+`src/components/ServerCard.tsx`) points the same app at it: the shell checks that the address
 answers as a Doop server (`/api/locale-config`, following redirects to where
 the pages really load; https only, plain http only on this computer), asks for confirmation in a
 native dialog (the server gets the app's IPC, Claude Code included), saves it
@@ -18,6 +19,10 @@ its own origin at runtime. If a chosen server does not answer at launch, a
 native dialog offers Try Again or Use doop.design (on every platform), and on
 macOS the app menu has "Use doop.design…" while one is chosen. Shells advertise this with
 `__DOOP_SERVER_CHOOSE__`. Debug builds keep their pick in `server-dev.json`.
+On a first launch (no such file yet) the app asks first, on a page bundled in
+the shell (`src-tauri/src/first_run.html`): doop.design or a self-hosted
+server. This fork's build never self-updates (`LOCAL_BUILD` in
+`src-tauri/src/updates.rs`).
 
 You can also build a shell that opens your instance by default, without
 patching anything:

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>doop</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fdfdfd;
+        --surface: #ffffff;
+        --ink: #111;
+        --ink-soft: #5f5e5b;
+        --ink-faint: #9c9b99;
+        --line: #dcdcdc;
+        --brand: #0177d3;
+        --danger: #c8372d;
+        --well: #f7f7f7;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #141414;
+          --surface: #1c1c1c;
+          --ink: #f2f2f2;
+          --ink-soft: #b4b4b4;
+          --ink-faint: #8a8a8a;
+          --line: #343434;
+          --well: #111;
+          --danger: #ff7a6e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          13.5px/1.5 Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .card {
+        width: min(100%, 420px);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 32px;
+        box-shadow: 0 10px 30px rgb(0 0 0 / 0.12);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+        font-weight: 500;
+      }
+      .brand svg {
+        width: 28px;
+        height: 28px;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 500;
+        margin: 20px 0 6px;
+      }
+      p {
+        color: var(--ink-soft);
+        margin: 0;
+      }
+      .choices {
+        display: grid;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+      .choice {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        cursor: pointer;
+      }
+      .choice:hover:not(:disabled),
+      .choice[aria-pressed='true'] {
+        border-color: var(--brand);
+      }
+      .choice strong {
+        display: block;
+        font-weight: 500;
+      }
+      .choice span {
+        color: var(--ink-faint);
+        font-size: 12px;
+      }
+      form {
+        margin-top: 14px;
+      }
+      form[hidden] {
+        display: none;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        background: var(--well);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 11px;
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      input:focus {
+        outline: 2px solid var(--brand);
+        outline-offset: -1px;
+      }
+      .hint {
+        color: var(--ink-faint);
+        font-size: 11px;
+        margin-top: 6px;
+      }
+      .error {
+        color: var(--danger);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .primary {
+        margin-top: 14px;
+        width: 100%;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 500;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8" fill="currentColor" opacity="0.08" />
+          <path d="M15 8h1.5a8 8 0 0 1 0 16H15z" fill="currentColor" />
+          <circle cx="10.5" cy="21.5" r="2.5" fill="currentColor" />
+        </svg>
+        doop
+      </div>
+      <h1>Where is your Doop?</h1>
+      <p>Pick the server this app opens. You can change it later from the sign-in screen.</p>
+      <div class="choices">
+        <button class="choice" id="hosted" type="button">
+          <strong>doop.design</strong>
+          <span>The hosted service</span>
+        </button>
+        <button class="choice" id="custom" type="button" aria-pressed="false">
+          <strong>A self-hosted server</strong>
+          <span>Your own Doop instance</span>
+        </button>
+      </div>
+      <form id="form" hidden>
+        <label for="url">Server address</label>
+        <input
+          id="url"
+          inputmode="url"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="https://doop.example.com"
+        />
+        <div class="hint">https://, or http:// for a server on this computer.</div>
+        <div class="error" id="error" role="alert" hidden></div>
+        <button class="primary" id="connect" type="submit">Connect</button>
+      </form>
+    </main>
+    <script>
+      /* The shell intercepts navigations to this address (src/server.rs,
+			   first_run) and answers through window.doopFirstRun. */
+      const ACTION = 'https://first-run.doop.invalid/'
+      const $ = (id) => document.getElementById(id)
+      const buttons = () => document.querySelectorAll('button')
+      function busy(on) {
+        for (const b of buttons()) b.disabled = on
+        $('url').disabled = on
+        $('connect').textContent = on ? 'Checking…' : 'Connect'
+      }
+      function go(query) {
+        busy(true)
+        $('error').hidden = true
+        location.href = ACTION + '?' + query
+      }
+      window.doopFirstRun = {
+        failed(message) {
+          busy(false)
+          $('error').textContent = message
+          $('error').hidden = false
+          $('url').focus()
+        },
+        cancelled() {
+          busy(false)
+        },
+      }
+      $('hosted').addEventListener('click', () => go('default'))
+      $('custom').addEventListener('click', () => {
+        $('custom').setAttribute('aria-pressed', 'true')
+        $('form').hidden = false
+        $('url').focus()
+      })
+      $('form').addEventListener('submit', (event) => {
+        event.preventDefault()
+        const url = $('url').value.trim()
+        if (url) go('url=' + encodeURIComponent(url))
+      })
+    </script>
+  </body>
+</html>

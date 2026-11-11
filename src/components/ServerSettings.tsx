@@ -17,7 +17,8 @@ import {
 /* The sign-in screen's cog in the desktop app: which Doop server the app
    opens (src/lib/desktopServer.ts). The shell does the checking, the
    confirming and the restart; this only collects the address. Browsers and
-   shells that cannot switch never draw it. */
+   shells that cannot switch never draw it. Settings → General opens the same
+   modal from its Server card (ServerCard). */
 export function ServerSettings() {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -32,7 +33,7 @@ export function ServerSettings() {
   )
 }
 
-function ServerModal({ onClose }: { onClose: () => void }) {
+export function ServerModal({ onClose }: { onClose: () => void }) {
   const t = useT()
   const [status, setStatus] = useState<ServerStatus | null>(null)
   const [address, setAddress] = useState('')

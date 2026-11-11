@@ -118,6 +118,28 @@ everything). Set `DATABASE_URL` to use a real Postgres — same code path as PGl
 
 Prefer not to run anything? **[doop.design](https://doop.design)** is the hosted version.
 
+### Use the desktop app with your server
+
+The [desktop app](desktop/README.md) opens doop.design by default. To point it at your own server:
+
+1. Serve Doop over **https** at a public address, with `BETTER_AUTH_URL` set to that address
+   (plain `http` is accepted only for `localhost`, for a server on the same computer).
+2. In the app, open the server settings. Signed out, use the cog at the bottom left of the sign-in
+   screen. Signed in, go to **Settings → General → Server → Change…**.
+3. Enter the address (`doop.example.com` or `https://doop.example.com`) and choose **Connect**.
+4. The app checks that a Doop server answers there and asks you to confirm in a native dialog.
+   Confirming saves the address and restarts the app on your server.
+5. Sign in on your server. Accounts and sessions belong to each server, so an account on doop.design
+   does not carry over.
+
+The address is saved in `server.json` in the app's data directory and survives restarts and app
+updates. Updates still come from doop.design. To go back, choose **Use doop.design** in the same
+settings, or on macOS use **Doop → Use doop.design…** in the menu bar. If your server does not
+answer when the app starts, the app offers **Try Again** or **Use doop.design**.
+
+Confirming gives your server the same access to the desktop app as doop.design has, which includes
+running Claude Code on your computer. Only connect to servers you trust.
+
 Once you sign in, Home is where you start: describe what you want and Doop makes a canvas with
 drafts queued for the Doop Agent, or pick up one of your canvases, workspaces and connected agents.
 
