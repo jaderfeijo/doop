@@ -1,0 +1,18 @@
+# Self-host overrides for the Mac mini (kept in this fork): bind to loopback so
+# the app is reachable solely through `tailscale serve`, and pass the whole .env
+# through.
+services:
+  doop:
+    ports: !override
+      - '127.0.0.1:4400:4400'
+    env_file: .env
+    # Host fonts for Chromium screenshots/exports (Lucida Grande copied from
+    # /System/Library/Fonts, which Docker Desktop cannot share directly).
+    volumes:
+      - ${HOME}/.local/share/doop-fonts:/usr/local/share/fonts/host:ro
+      # uploaded assets + thumbnails (disk storage mode); without this they
+      # live in the container layer and vanish whenever it is recreated
+      - doop-data:/app/data
+
+volumes:
+  doop-data:
